@@ -1,0 +1,9 @@
+
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ include "mychart.app" . }}.
+
+To learn more about the release, run:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}

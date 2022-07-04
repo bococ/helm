@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "datlas.fullname" . }}
+data:
+  auth.py: |
+    config = {
+      'redis': {
+        'host': 'redis-0.redis.{{ .Release.Namespace }}.svc.cluster.local',
+        'port': 6379,
+        'db': 1,
+        'dsn': 'redis://@{host}:{port}/{db}'
+      },
+      'feature_toggle': {
+        'slack': True,
+        'worker': True,
+        'prometheus': True,
+      },
+      'wechat': {
+        'app_id': '',
+        'app_secret': '',
+        'mobile_app_id': '',
+        'mobile_app_secret': '',
+        'register_app_id': None,
+        'register_app_secret': None,
+        'datlas_app_id': None,
+        'datlas_app_secret': None
+      },
+      'dingtalk': {
+        'app_id': '',
+        'app_secret': '',
+        'datlas_app_id': None,
+        'datlas_app_secret': None
+      },
+      'app': {
+        'token_ttl': 86400,
+        'login_fail_ttl': 86400,
+        # TODO(luyufeng): 正式上线后移除
+        'personalized_login_host': 'https://dev.idatatlas.com/login',
+        'max_client_server_ts_diff': 300,
+        'default_pwd': '7PA5tr9QFAmsaUnn',
+        'debug': True,
+        'email_sender': 'notification@datlas.cn',
+        'mdt_app': [63, 88]
+      },
+      'host': {
+        'user_register_host': None,
+        'datlas_host': None,
+      },
+      'shdc': None,
+      'chengfang': None,
+      'riskstorm': {
+        'yuhang': {
+          'username': 'metrotest',
+          'email': 'ljdl@metrodata.cn',
+          'passcode': ''
+        },
+        'huaihua': {
+          'username': 'metrotest',
+          'email': 'ljdl@metrodata.cn',
+          'passcode': ''
+        }
+      },
+      'zhongke': {
+        'baseUrl': '',
+        'access_token': ''
+      },
+      'personalized_login': {
+        'bucket': 'ygc-public',
+        'path': 'personalized_login',
+        'host': 'https://dev.idatatlas.com/login',
+      },
+      'vault_link': {
+        'bucket': 'ygc-public',
+        'path': 'page_sharing',
+      },
+      'sso': {
+        'qingshanhu': {'api': ''}
+      },
+      'customize': {
+          'user_push': {'action_mapping': {'update': 'update', 'insert': 'insert', 'delete': 'delete'},
+                        'status_mapping': {'0': False, '1': True},
+                        'action_field': 'subType',
+                        'record_type': 'jsonstr',
+                        'record_field': 'value',
+                        'table_name_field': 'tableName',
+                        'user_id_field': 'UserID',
+                        'user_status_field': 'DataStatus',
+                        'user_table_name': 'OU_User',
+                        'user_name_field': 'LoginName',
+                        'user_primary_key': 'UserID',
+                        'email_field': 'Email',
+                        'phone_field': 'MobilePhone',
+                        'app_name': '阳光城',
+                        'admin_user_name': 'ygc_admin',
+                        'permissions': ['work_space', 'download_pkg'],
+                        'table_mapping': {
+                          'OU_OrgUnit': {'primary_key': 'OrgID',
+                                        'other_interested': ['OrgCode', 'OrgName', 'OrgClass', 'OrgLevel', 'DataStatus']},
+                          'OU_Employee': {'primary_key': 'ID',
+                                          'other_interested': ['UserID', 'PositionID', 'OrgID', 'DataStatus']},
+                          'OU_Position': {'primary_key': 'PositionID',
+                                          'other_interested': ['PositionCode', 'PositionName', 'OrgID', 'DataStatus']}
+                        }}
+        }
+    }

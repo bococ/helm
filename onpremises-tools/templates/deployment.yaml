@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "datlas.fullname" . }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "datlas.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "datlas.fullname" . }}
+    spec:
+      containers:
+        - name: {{ template "datlas.fullname" . }}
+          image: {{ printf "%s:%s" .Values.image.name .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          ports:
+          - containerPort: {{ .Values.service.targetPort }}
+          resources:
+             requests:
+               cpu: {{ .Values.resources.requests.cpu | quote }}
+               memory: {{ .Values.resources.requests.memory | quote }}
+             limits:
+               cpu: {{ .Values.resources.limits.cpu | quote }}
+               memory: {{ .Values.resources.limits.memory | quote }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 75
+            periodSeconds: 12
+            timeoutSeconds: 1
+          # 解决停止pod时，流量丢失问题，10s的时间用于处理完最后的请求。
+          lifecycle:
+            preStop:
+              exec:
+                # SIGTERM triggers a quick exit; gracefully terminate instead
+                command: ["/bin/bash", "-c", "sleep 10"]
+          env:
+          - name: TZ
+            value: {{ .Values.base.TZ | quote }}
+          - name: UV_THREADPOOL_SIZE
+            value: {{ .Values.base.UV_THREADPOOL_SIZE | quote }}
+          - name: MDT_CONFIG_SERVER_FORCE
+            value: {{ .Values.base.MDT_CONFIG_SERVER_FORCE | quote }}
+          - name: prometheus_multiproc_dir
+            value: {{ .Values.base.prometheus_multiproc_dir | quote }}
+          - name: WEB_CONCURRENCY
+            value: {{ .Values.env.WEB_CONCURRENCY | quote }}
+          - name: GUNICORN_CMD_ARGS
+            value: {{ .Values.env.GUNICORN_CMD_ARGS | quote }}
+          command: {{ .Values.command }}
+          args: {{ .Values.args }}
+          volumeMounts:
+            - name: {{ .Values.volumes.mounts.confname }}
+              mountPath: {{ .Values.volumes.mounts.confmountPath }}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:  # 软策略
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: com
+                operator: In
+                values:
+                - liyu
+      # 容器crash或着livenessProbe探测失败后重启容器。
+      # Always: 只要container退出就重新启动
+      # OnFailure: 当container非正常退出后重新启动
+      # Never: 从不进行重新启动
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: {{ .Values.volumes.mounts.confname }}
+        configMap:
+          name: {{ template "datlas.fullname" . }}
