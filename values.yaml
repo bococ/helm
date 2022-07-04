@@ -1,0 +1,64 @@
+# Default values for mychart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+Name: onpremises-tools
+
+
+replicas: 1
+
+base:
+  TZ: Asia/Shanghai
+  UV_THREADPOOL_SIZE: 128
+  MDT_CONFIG_SERVER_FORCE: "consul://consul-server-0.consul-server.datlas.svc.cluster.local:8500"
+  prometheus_multiproc_dir: /tmp
+
+
+env:
+  # gunicorn --workers
+  WEB_CONCURRENCY: 8
+  # gunicorn extra
+  GUNICORN_CMD_ARGS: '--bind 0.0.0.0:8890 --log-level info --timeout 60 --max-requests 100000'
+
+command: ["tail"]
+
+args: ["-f"]
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 500Mi
+  limits:
+    cpu: 50m
+    memory: 500Mi
+
+volumes:
+  # container 挂载目录
+  mounts:
+    name: auth
+    confname: conf
+    mountPath: /mnt/datlas
+    confmountPath: /conf
+  accessModes: ReadWriteOnce
+  SCName: nfs-storage
+  # pv申请资源
+  storage: 10Gi
+
+image:
+  name: registry.cn-hangzhou.aliyuncs.com/mdt-external/onpremises_tools
+  tag: stable_20211118
+  ## 指定 imagePullPolicy 默认为 Always
+  pullPolicy: IfNotPresent
+  ## 如果是私有仓库，需要指定 imagePullSecrets
+  # pullSecrets:
+  #   - myRegistryKeySecretName
+
+service:
+  type: NodePort
+  # 映射容器外的端口
+  port: 8893
+  # 容器内的端口
+  targetPort: 8890
+
+
+
