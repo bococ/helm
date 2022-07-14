@@ -1,0 +1,65 @@
+# Default values for mychart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+Name: datamap-v1
+
+
+replicas: 1
+
+base:
+  TZ: Asia/Shanghai
+  UV_THREADPOOL_SIZE: 128
+  MDT_CONFIG_SERVER_FORCE: "consul://consul-server-0.consul-server.datlas.svc.cluster.local:8500"
+  prometheus_multiproc_dir: /tmp
+
+
+env:
+  TZ: UTC
+  WEB_CONCURRENCY: 10
+  GUNICORN_CMD_ARGS: '--bind 0.0.0.0:8890 --log-level debug --timeout 60 --max-requests 1000'
+
+command: ["python"]
+
+args: ["app.py,docker"]
+
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 500Mi
+  limits:
+    cpu: 50m
+    memory: 500Mi
+
+volumes:
+  # container 挂载目录
+  mounts:
+    name: datamap
+    mountPath: /mnt/datlas
+    confname: conf
+    confmountPath: /conf
+  accessModes: ReadWriteMany
+  SCName: nfs-storage
+  # pv申请资源
+  storage: 10Gi
+  # path
+  nfs:
+    path: /data/nfs/datlas-pvc-datamap-v1
+    server: 192.168.100.4
+
+image:
+  name: registry.cn-hangzhou.aliyuncs.com/mdt-external/datamap_v1
+  tag: v1.0.8
+  ## 指定 imagePullPolicy 默认为 Always
+  pullPolicy: IfNotPresent
+  ## 如果是私有仓库，需要指定 imagePullSecrets
+  # pullSecrets:
+  #   - myRegistryKeySecretName
+
+service:
+  type: NodePort
+  # 映射容器外的端口
+  port: 8890
+  # 容器内的端口
+  targetPort: 8890

@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "datlas.fullname" . }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "datlas.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "datlas.fullname" . }}
+    spec:
+      containers:
+        - name: {{ template "datlas.fullname" . }}
+          image: {{ printf "%s:%s" .Values.image.name .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          ports:
+          - containerPort: {{ .Values.service.targetPort }}
+          resources:
+             requests:
+               cpu: {{ .Values.resources.requests.cpu | quote }}
+               memory: {{ .Values.resources.requests.memory | quote }}
+             limits:
+               cpu: {{ .Values.resources.limits.cpu | quote }}
+               memory: {{ .Values.resources.limits.memory | quote }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 75
+            periodSeconds: 12
+            timeoutSeconds: 1
+          # 解决停止pod时，流量丢失问题，10s的时间用于处理完最后的请求。
+          lifecycle:
+            preStop:
+              exec:
+                # SIGTERM triggers a quick exit; gracefully terminate instead
+                command: ["/bin/bash", "-c", "sleep 10"]
+          command: {{ .Values.command }}
+          args: {{ .Values.args }}
+          volumeMounts:
+            - name: {{ .Values.volumes.mounts.name }}
+              mountPath: {{ .Values.volumes.mounts.mountPath }}
+            - name: {{ .Values.volumes.mounts.confname }}
+              mountPath: {{ .Values.volumes.mounts.confmountPath }}
+      # 容器crash或着livenessProbe探测失败后重启容器。
+      # Always: 只要container退出就重新启动
+      # OnFailure: 当container非正常退出后重新启动
+      # Never: 从不进行重新启动
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: {{ .Values.volumes.mounts.name }}
+        persistentVolumeClaim:
+          claimName: pvc-{{ .Values.Name }}
+      - name: {{ .Values.volumes.mounts.confname }}
+        configMap:
+          name: {{ .Values.Name }}-configmap
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-{{ .Values.Name }}
+spec:
+  accessModes: [ {{ .Values.volumes.accessModes | quote }} ]
+  storageClassName: {{ .Values.volumes.SCName | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.volumes.storage | quote }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-{{ .Values.Name }}
+spec:
+  storageClassName: {{ .Values.volumes.SCName | quote }}
+  capacity:
+    storage: {{ .Values.volumes.storage | quote }}
+  accessModes:
+    - {{ .Values.volumes.accessModes | quote }}
+  nfs:
+    path: {{ .Values.volumes.nfs.path }}
+    server: {{ .Values.volumes.nfs.server }}
